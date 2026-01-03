@@ -1,109 +1,83 @@
 import re
+def split_input(input_string):
+    rules = []
+    updates = []
 
+    for line in input_string.strip().splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        if '|' in line:
+            rules.append(list(map(int, line.split('|'))))
+        elif ',' in line:
+            updates.append(list(map(int, line.split(','))))
+        else:
+            pass
 
-def find_vertical(input):
-    lines = [line.strip() for line in input.splitlines()]
+    return rules, updates
 
-    lineLength = len(lines[0])
-    numberOfLines = len(lines)
-    rotated = ""
-    for j in range(lineLength):
-        for i in range(numberOfLines):
-            row = lines[i]
-            rotated += row[j]
-        rotated += "\n"
-    pattern = r"(?=(XMAS|SAMX))"
-    matches = [m.group(1) for m in re.finditer(pattern, rotated)]
+def orderUpdates(updates, rules):
+    ordered = []
+    for update in updates:
+        s = set(update)
+        graph = {p: [] for p in update}
+        indegree = {p: 0 for p in update}
+        for a, b in rules:
+            if a in s and b in s:
+                graph[a].append(b)
+                indegree[b] += 1
 
-    return len(matches)
+        queue = [p for p in update if indegree[p] == 0]
 
-def find_diagonal(input):
+        result = []
 
-    lines = [line.strip() for line in input.splitlines()]
-    cols = len(lines[0])
-    rows = len(lines)
-    diagList = []
-    diag = ""
-    #Top-Left -> Bottom-Right (Top Right half)
-    for j in range(cols):
-        substring = ""
-        currentRow, currentCol = 0, j
-        while currentRow < rows and currentCol < cols:
-            line = lines[currentRow]
-            substring += line[currentCol]
-            currentRow += 1
-            currentCol += 1
+        while queue:
+            node = queue.pop(0)  # pop from front
+            result.append(node)
 
-        diagList.append(substring)
-    #Top-Left -> Bottom-Right (Bottom-Left half)
-    for i in range(1, rows):
-        substring = ""
-        currentRow = i;
-        currentCol = 0
-        while currentRow < rows and currentCol < cols:
-            line = lines[currentRow]
-            substring += line[currentCol]
-            currentRow += 1
-            currentCol += 1
-        diagList.append(substring)
+            for nxt in graph[node]:
+                indegree[nxt] -= 1
+                if indegree[nxt] == 0:
+                    queue.append(nxt)
+        ordered.append(result)
+    return(ordered)
 
-    #Top-Right to Bottom-Left (Top-Left Half)
-    for j in range(1, cols):
-        substring = ""
-        currentRow = 0
-        currentCol = cols - j
-        while currentRow < rows and currentCol > -1:
-            line = lines[currentRow]
-            substring += line[currentCol]
-            currentRow += 1
-            currentCol -= 1
-        diagList.append(substring)
+def countMiddle(updates):
+    total = 0
+    for update in updates:
+        length = len(update)
+        middleIndex = length // 2
+        total += update[middleIndex]
+    return total
 
-    #Top-Right to Bottom-Left (Bottom-Right Half)
-    for i in range(1,rows):
-        substring = ""
-        currentRow = i
-        currentCol = cols - 1
-        while currentRow < rows and currentCol > -1:
-            line = lines[currentRow]
-            substring += line[currentCol]
-            currentRow += 1
-            currentCol -= 1
-        diagList.append(substring)
-
-    count = 0
-    pattern = r"(?=(XMAS|SAMX))"
-    for diagonal in diagList:
-        if len(diagonal) >= 4:
-            count += len(re.findall(pattern, diagonal))
-
-    return count
-
-
-def find_horizontal(input):
-    pattern = r"(?=(XMAS|SAMX))"
-    matches = [m.group(1) for m in re.finditer(pattern, input)]
-
-    return len(matches)
-
-def solve_part_1(input):
-    return 0
-
-
+def validateUpdates(updates, rules):
+    validUpdate = []
+    invalidUpdate = []
+    for update in updates:
+        valid = True
+        for rule in rules:
+            a = rule[0]
+            b = rule[1]
+            if a in update and b in update:
+                if update.index(a) > update.index(b):
+                    valid = False
+                    invalidUpdate.append(update)
+                    break
+        if valid:
+            validUpdate.append(update)
+    return validUpdate, invalidUpdate
 
 if __name__ == '__main__':
-    example = open("../Inputs/Day4/example.txt").read()
-    input = open("../Inputs/Day4/input.txt").read()
-    test = open("../Inputs/Day4/test.txt").read()
+    example = open("../Inputs/Day4/example.txt.txt").read()
+    part1_input = open("../Inputs/Day4/input.txt.txt").read()
+    rules,updates = split_input(part1_input)
+    valid, invalid = validateUpdates(updates, rules)
 
-    horizontal = find_horizontal(input)
-    vertical = find_vertical(input)
-    diagonal = find_diagonal(input)
-    print(horizontal, vertical, diagonal)
-    total = horizontal + vertical + diagonal
-    print(total)
+    print("Part 1: " ,countMiddle(valid))
+    fixedUpdates = orderUpdates(invalid,rules)
+    print("Part 2: ", countMiddle(fixedUpdates))
 
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+
 
 
 
